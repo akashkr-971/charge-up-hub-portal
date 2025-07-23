@@ -3,11 +3,14 @@ import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Zap, User, Settings, MapPin, LogOut } from "lucide-react";
+import ChargingStationMap from "@/components/ChargingStationMap";
 
 const Navbar = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false); // This will be replaced with actual auth state
   const [user, setUser] = useState({ name: "John Doe", email: "john@example.com" }); // Mock user data
+  const [isMapOpen, setIsMapOpen] = useState(false);
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -38,9 +41,24 @@ const Navbar = () => {
         </div>
         
         <div className="flex items-center space-x-3">
-          <Button variant="ghost" size="icon">
-            <MapPin className="w-4 h-4" />
-          </Button>
+          <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
+            <DialogTrigger asChild>
+              <Button variant="ghost" size="icon">
+                <MapPin className="w-4 h-4" />
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-6xl h-[80vh] p-0">
+              <DialogHeader className="px-6 py-4">
+                <DialogTitle className="flex items-center gap-2">
+                  <MapPin className="w-5 h-5" />
+                  Charging Stations Near You
+                </DialogTitle>
+              </DialogHeader>
+              <div className="px-6 pb-6">
+                <ChargingStationMap />
+              </div>
+            </DialogContent>
+          </Dialog>
           <Button variant="ghost" size="icon">
             <Settings className="w-4 h-4" />
           </Button>
