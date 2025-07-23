@@ -8,14 +8,18 @@ import { Zap, User, Settings, MapPin, LogOut } from "lucide-react";
 import ChargingStationMap from "@/components/ChargingStationMap";
 
 const Navbar = () => {
-  const [isLoggedIn, setIsLoggedIn] = useState(false); // This will be replaced with actual auth state
-  const [user, setUser] = useState({ name: "John Doe", email: "john@example.com" }); // Mock user data
+  const [user, setUser] = useState(() => {
+    const stored = localStorage.getItem('user');
+    return stored ? JSON.parse(stored) : null;
+  });
+  const isLoggedIn = !!user;
   const [isMapOpen, setIsMapOpen] = useState(false);
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    setIsLoggedIn(false);
-    // Add actual logout logic here later
+    localStorage.removeItem('user');
+    setUser(null);
+    navigate('/login');
   };
 
   return (
@@ -68,9 +72,9 @@ const Navbar = () => {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                   <Avatar className="h-8 w-8">
-                    <AvatarImage src="" alt={user.name} />
+                    <AvatarImage src="" alt={user.username} />
                     <AvatarFallback className="bg-gradient-electric text-background">
-                      {user.name.split(' ').map(n => n[0]).join('')}
+                      {user.username.split(' ').map(n => n[0]).join('')}
                     </AvatarFallback>
                   </Avatar>
                 </Button>
@@ -78,7 +82,7 @@ const Navbar = () => {
               <DropdownMenuContent className="w-56" align="end" forceMount>
                 <div className="flex items-center justify-start gap-2 p-2">
                   <div className="flex flex-col space-y-1 leading-none">
-                    <p className="font-medium">{user.name}</p>
+                    <p className="font-medium">{user.username}</p>
                     <p className="w-[200px] truncate text-sm text-muted-foreground">
                       {user.email}
                     </p>

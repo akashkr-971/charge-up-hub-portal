@@ -33,10 +33,44 @@ const Signup = () => {
     });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Logic will be provided later
-    console.log("Signup form submitted:", formData);
+    // Basic client-side validation
+    if (formData.password !== formData.confirmPassword) {
+      alert('Passwords do not match');
+      return;
+    }
+    try {
+      const payload = {
+        username: formData.firstName + ' ' + formData.lastName,
+        email: formData.email,
+        password: formData.password,
+        vehicle_number: formData.vehicleNumber,
+        model: formData.vehicleModel,
+        brand: formData.vehicleMake,
+      };
+      const response = await fetch('http://localhost:5000/api/signup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+      const data = await response.json();
+      if (response.ok) {
+        // Signup successful, handle navigation or state here
+        console.log('Signup successful:', data);
+        alert('Signup successful! You can now log in.');
+        window.location.href = '/login';  // Redirect to login page
+        // Example: redirect to login page
+        // navigate('/login');
+      } else {
+        alert(data.message || 'Signup failed');
+      }
+    } catch (error) {
+      console.error('Signup error:', error);
+      alert('An error occurred. Please try again.');
+    }
   };
 
   return (
