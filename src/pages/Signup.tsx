@@ -5,7 +5,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Zap, Eye, EyeOff } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Zap, Eye, EyeOff, Car } from "lucide-react";
+import signupBg from "@/assets/signup-bg.jpg";
 
 const Signup = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -16,6 +18,10 @@ const Signup = () => {
     email: "",
     password: "",
     confirmPassword: "",
+    vehicleNumber: "",
+    vehicleMake: "",
+    vehicleModel: "",
+    vehicleYear: "",
     acceptTerms: false,
   });
 
@@ -34,8 +40,13 @@ const Signup = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-hero flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
+    <div className="min-h-screen relative flex items-center justify-center p-4">
+      <div 
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+        style={{ backgroundImage: `url(${signupBg})` }}
+      />
+      <div className="absolute inset-0 bg-black/40" />
+      <Card className="w-full max-w-lg relative z-10 backdrop-blur-sm bg-background/95">
         <CardHeader className="text-center">
           <div className="flex items-center justify-center space-x-2 mb-4">
             <div className="w-8 h-8 bg-gradient-electric rounded-lg flex items-center justify-center">
@@ -140,6 +151,86 @@ const Signup = () => {
                 </Button>
               </div>
             </div>
+            
+            {/* Vehicle Details Section */}
+            <div className="space-y-4 pt-4 border-t">
+              <div className="flex items-center space-x-2 mb-4">
+                <Car className="w-5 h-5 text-primary" />
+                <h3 className="text-lg font-semibold">Vehicle Details</h3>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="vehicleNumber">Vehicle Number / License Plate</Label>
+                <Input
+                  id="vehicleNumber"
+                  name="vehicleNumber"
+                  type="text"
+                  placeholder="e.g., ABC-1234"
+                  value={formData.vehicleNumber}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="vehicleMake">Vehicle Make</Label>
+                  <Select
+                    value={formData.vehicleMake}
+                    onValueChange={(value) => setFormData({...formData, vehicleMake: value})}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select make" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="tesla">Tesla</SelectItem>
+                      <SelectItem value="bmw">BMW</SelectItem>
+                      <SelectItem value="audi">Audi</SelectItem>
+                      <SelectItem value="mercedes">Mercedes-Benz</SelectItem>
+                      <SelectItem value="nissan">Nissan</SelectItem>
+                      <SelectItem value="volkswagen">Volkswagen</SelectItem>
+                      <SelectItem value="hyundai">Hyundai</SelectItem>
+                      <SelectItem value="kia">Kia</SelectItem>
+                      <SelectItem value="ford">Ford</SelectItem>
+                      <SelectItem value="chevrolet">Chevrolet</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="vehicleYear">Year</Label>
+                  <Select
+                    value={formData.vehicleYear}
+                    onValueChange={(value) => setFormData({...formData, vehicleYear: value})}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Year" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: 10 }, (_, i) => {
+                        const year = new Date().getFullYear() - i;
+                        return <SelectItem key={year} value={year.toString()}>{year}</SelectItem>;
+                      })}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="vehicleModel">Vehicle Model</Label>
+                <Input
+                  id="vehicleModel"
+                  name="vehicleModel"
+                  type="text"
+                  placeholder="e.g., Model 3, i3, e-tron"
+                  value={formData.vehicleModel}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+            </div>
+            
             <div className="flex items-center space-x-2">
               <Checkbox
                 id="acceptTerms"
@@ -164,7 +255,7 @@ const Signup = () => {
             <Button 
               type="submit" 
               className="w-full bg-gradient-electric text-background font-medium hover:shadow-glow-primary transition-all"
-              disabled={!formData.acceptTerms}
+              disabled={!formData.acceptTerms || !formData.vehicleNumber || !formData.vehicleMake || !formData.vehicleModel || !formData.vehicleYear}
             >
               Create Account
             </Button>
