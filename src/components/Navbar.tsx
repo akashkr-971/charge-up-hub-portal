@@ -63,9 +63,6 @@ const Navbar = () => {
               </div>
             </DialogContent>
           </Dialog>
-          <Button variant="ghost" size="icon">
-            <Settings className="w-4 h-4" />
-          </Button>
           
           {isLoggedIn ? (
             <DropdownMenu>
@@ -96,9 +93,9 @@ const Navbar = () => {
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <Link to="/settings" className="cursor-pointer">
-                    <Settings className="mr-2 h-4 w-4" />
-                    Settings
+                  <Link to="/booking-history" className="cursor-pointer">
+                    <Zap className="mr-2 h-4 w-4" />
+                    Booking History
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />

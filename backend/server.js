@@ -1,3 +1,5 @@
+
+
 // server.js
 import express from 'express';
 import cors from 'cors';
@@ -52,6 +54,71 @@ app.post('/api/login', async (req, res) => {
     }
     res.json({ message: 'Login successful', user: { id: user.id, username: user.username, email: user.email } });
   } catch (err) {
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
+
+// Get vehicle details for a user
+app.get('/api/vehicle/:userId', async (req, res) => {
+  const { userId } = req.params;
+  console.log('Fetching vehicle for user ID:', userId);
+  try {
+    const [vehicles] = await pool.query('SELECT * FROM vehicles WHERE user_id = ?', [userId]);
+    if (vehicles.length === 0) {
+      return res.status(404).json({ message: 'No vehicle found for this user.' });
+    }
+    res.json({ vehicle: vehicles[0] });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
+
+// Update vehicle details for a user
+app.put('/api/vehicle/:userId', async (req, res) => {
+  const { userId } = req.params;
+  const { vehicle_number, model, brand, year } = req.body;
+  try {
+    const [result] = await pool.query(
+      'UPDATE vehicles SET vehicle_number = ?, model = ?, brand = ?, year = ? WHERE user_id = ?',
+      [vehicle_number, model, brand, year, userId]
+    );
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: 'No vehicle found for this user.' });
+    }
+    res.json({ message: 'Vehicle details updated successfully.' });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
+
+
+// Booking endpoint
+app.post('/api/booking', async (req, res) => {
+  const { user_id, station_id, station_name, date, time, duration } = req.body;
+  if (!user_id || !station_id || !station_name || !date || !time || !duration) {
+    return res.status(400).json({ message: 'All booking fields are required.' });
+  }
+  try {
+    await pool.query(
+      'INSERT INTO bookings (user_id, station_id, station_name, date, time, duration) VALUES (?, ?, ?, ?, ?, ?)',
+      [user_id, station_id, station_name, date, time, duration]
+    );
+    res.status(201).json({ message: 'Booking saved successfully.' });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
+
+// Get all bookings for a user (booking history)
+app.get('/api/bookings/:userId', async (req, res) => {
+  const { userId } = req.params;
+  console.log('GET /api/bookings/:userId called with userId:', userId);
+  try {
+    const [bookings] = await pool.query('SELECT * FROM bookings WHERE user_id = ? ORDER BY date DESC, time DESC', [userId]);
+    console.log('Bookings found:', bookings.length);
+    res.json({ bookings });
+  } catch (err) {
+    console.error('Error fetching bookings:', err);
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 });

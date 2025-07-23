@@ -28,12 +28,48 @@ const VehicleRegistration = () => {
     plateNumber: ""
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast({
-      title: "Vehicle Registered Successfully!",
-      description: "Your vehicle details have been saved to your profile.",
-    });
+    const storedUser = localStorage.getItem('user');
+    const user = storedUser ? JSON.parse(storedUser) : null;
+    if (!user?.id) {
+      toast({
+        title: "Not logged in",
+        description: "Please log in to register your vehicle.",
+        variant: "destructive",
+      });
+      return;
+    }
+    try {
+      const res = await fetch(`http://localhost:5000/api/vehicle/${user.id}` , {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          vehicle_number: vehicleData.plateNumber,
+          brand: vehicleData.make,
+          model: vehicleData.model,
+          year: vehicleData.year,
+        })
+      });
+      if (res.ok) {
+        toast({
+          title: "Vehicle Registered Successfully!",
+          description: "Your vehicle details have been saved to your profile.",
+        });
+      } else {
+        toast({
+          title: "Registration Failed",
+          description: "Could not save vehicle details. Please try again.",
+          variant: "destructive",
+        });
+      }
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "An error occurred while saving vehicle details.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleInputChange = (field: keyof VehicleData, value: string) => {

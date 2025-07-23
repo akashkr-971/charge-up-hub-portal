@@ -27,33 +27,34 @@ const SlotBooking = () => {
   const [selectedStation, setSelectedStation] = useState<string>("");
   const [selectedDuration, setSelectedDuration] = useState<string>("");
 
+  // Example Kerala stations (replace with real data as needed)
   const stations: Station[] = [
     {
       id: "1",
-      name: "Downtown Electric Hub",
-      address: "123 Main St, Downtown",
+      name: "Kochi EV Hub",
+      address: "MG Road, Kochi, Kerala",
       distance: "2.5 km",
       availableSlots: 8,
       power: "350 kW",
-      price: "$0.35/kWh"
+      price: "₹18/kWh"
     },
     {
-      id: "2", 
-      name: "Mall Charging Center",
-      address: "456 Shopping Ave",
+      id: "2",
+      name: "Trivandrum Charge Point",
+      address: "Technopark, Trivandrum, Kerala",
       distance: "4.1 km",
       availableSlots: 12,
       power: "250 kW",
-      price: "$0.32/kWh"
+      price: "₹16/kWh"
     },
     {
       id: "3",
-      name: "Highway Express Charge",
-      address: "789 Highway Exit 15",
+      name: "Calicut Fast Charge",
+      address: "Beach Road, Calicut, Kerala",
       distance: "6.8 km",
       availableSlots: 6,
       power: "300 kW",
-      price: "$0.38/kWh"
+      price: "₹20/kWh"
     }
   ];
 
@@ -66,7 +67,7 @@ const SlotBooking = () => {
 
   const durations = ["30 min", "1 hour", "1.5 hours", "2 hours", "3 hours"];
 
-  const handleBooking = () => {
+  const handleBooking = async () => {
     if (!selectedDate || !selectedTime || !selectedStation || !selectedDuration) {
       toast({
         title: "Incomplete Information",
@@ -75,11 +76,49 @@ const SlotBooking = () => {
       });
       return;
     }
-
-    toast({
-      title: "Booking Confirmed!",
-      description: `Your charging slot has been booked for ${format(selectedDate, "PPP")} at ${selectedTime}.`,
-    });
+    const storedUser = localStorage.getItem('user');
+    const user = storedUser ? JSON.parse(storedUser) : null;
+    if (!user?.id) {
+      toast({
+        title: "Not logged in",
+        description: "Please log in to book a slot.",
+        variant: "destructive",
+      });
+      return;
+    }
+    try {
+      const station = stations.find(s => s.id === selectedStation);
+      const res = await fetch('http://localhost:5000/api/booking', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: user.id,
+          station_id: station?.id,
+          station_name: station?.name,
+          date: selectedDate.toISOString().split('T')[0],
+          time: selectedTime,
+          duration: selectedDuration,
+        })
+      });
+      if (res.ok) {
+        toast({
+          title: "Booking Confirmed!",
+          description: `Your charging slot has been booked for ${format(selectedDate, "PPP")} at ${selectedTime}.`,
+        });
+      } else {
+        toast({
+          title: "Booking Failed",
+          description: "Could not save booking. Please try again.",
+          variant: "destructive",
+        });
+      }
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "An error occurred while saving booking.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
