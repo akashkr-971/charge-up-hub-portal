@@ -56,7 +56,7 @@ const BookingHistory = () => {
                     {current.map((b, i) => (
                       <tr key={b.id || i} className="border-b last:border-0">
                         <td className="px-3 py-2">{b.station_name}</td>
-                        <td className="px-3 py-2">{b.date}</td>
+                        <td className="px-3 py-2">{b.date?.split('T')[0]}</td>
                         <td className="px-3 py-2">{b.time}</td>
                         <td className="px-3 py-2">{b.duration}</td>
                       </tr>
@@ -87,7 +87,7 @@ const BookingHistory = () => {
                     {history.map((b, i) => (
                       <tr key={b.id || i} className="border-b last:border-0">
                         <td className="px-3 py-2">{b.station_name}</td>
-                        <td className="px-3 py-2">{b.date}</td>
+                        <td className="px-3 py-2">{b.date?.split('T')[0]}</td>
                         <td className="px-3 py-2">{b.time}</td>
                         <td className="px-3 py-2">{b.duration}</td>
                       </tr>

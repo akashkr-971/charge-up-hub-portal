@@ -1,9 +1,7 @@
 
-
 // server.js
 import express from 'express';
 import cors from 'cors';
-import bcrypt from 'bcryptjs';
 import pool from './db.js';
 
 
@@ -23,9 +21,8 @@ app.post('/api/signup', async (req, res) => {
     if (existing.length > 0) {
       return res.status(409).json({ message: 'User already exists.' });
     }
-    const hashedPassword = await bcrypt.hash(password, 10);
-    // Insert user and get the inserted id
-    const [userResult] = await pool.query('INSERT INTO users (username, email, password) VALUES (?, ?, ?)', [username, email, hashedPassword]);
+    // Store password as plain text (not recommended for production)
+    const [userResult] = await pool.query('INSERT INTO users (username, email, password) VALUES (?, ?, ?)', [username, email, password]);
     const userId = userResult.insertId;
     // Insert vehicle details
     await pool.query('INSERT INTO vehicles (user_id, vehicle_number, model, brand) VALUES (?, ?, ?, ?)', [userId, vehicle_number, model || null, brand || null]);
@@ -48,11 +45,26 @@ app.post('/api/login', async (req, res) => {
       return res.status(401).json({ message: 'Invalid credentials.' });
     }
     const user = users[0];
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
+    if (password !== user.password) {
       return res.status(401).json({ message: 'Invalid credentials.' });
     }
-    res.json({ message: 'Login successful', user: { id: user.id, username: user.username, email: user.email } });
+    res.json({ message: 'Login successful', user: { id: user.id, username: user.username, email: user.email, role: user.role } });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
+// Feedback submission endpoint
+app.post('/api/feedback', async (req, res) => {
+  const { user_id, feedback } = req.body;
+  if (!feedback) {
+    return res.status(400).json({ message: 'Feedback is required.' });
+  }
+  try {
+    await pool.query(
+      'INSERT INTO feedback (user_id, feedback) VALUES (?, ?)',
+      [user_id || null, feedback]
+    );
+    res.status(201).json({ message: 'Feedback submitted successfully.' });
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err.message });
   }
@@ -119,6 +131,92 @@ app.get('/api/bookings/:userId', async (req, res) => {
     res.json({ bookings });
   } catch (err) {
     console.error('Error fetching bookings:', err);
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
+
+// Admin: Get all feedback submissions with username
+app.get('/api/feedbacks', async (req, res) => {
+  try {
+    const [rows] = await pool.query(`
+      SELECT feedback.*, users.username 
+      FROM feedback 
+      LEFT JOIN users ON feedback.user_id = users.id 
+      ORDER BY feedback.created_at DESC
+    `);
+    // Parse feedback for stars/description if not present
+    const feedbacks = rows.map(row => {
+      let stars = row.stars;
+      let description = row.description || '';
+      // If stars is missing, try to parse from feedback string
+      if (stars === undefined && typeof row.feedback === 'string') {
+        // Example: 'Rating: 5, Experience: excellent, Comment: Nice'
+        const ratingMatch = row.feedback.match(/Rating:\s*(\d+)/i);
+        if (ratingMatch) stars = parseInt(ratingMatch[1], 10);
+        const commentMatch = row.feedback.match(/Comment:\s*([^,]+)/i);
+        if (commentMatch) description = commentMatch[1].trim();
+        else {
+          // fallback: use Experience or whole feedback
+          const expMatch = row.feedback.match(/Experience:\s*([^,]+)/i);
+          if (expMatch) description = expMatch[1].trim();
+          else description = row.feedback;
+        }
+      }
+      return {
+        ...row,
+        stars: stars !== undefined ? stars : 5,
+        description
+      };
+    });
+    res.json({ feedbacks });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
+
+// Admin: Get all users
+app.get('/api/users', async (req, res) => {
+  try {
+    const [users] = await pool.query('SELECT * FROM users');
+    res.json({ users });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
+
+// Admin: Get all vehicles
+app.get('/api/vehicles', async (req, res) => {
+  try {
+    const [vehicles] = await pool.query('SELECT * FROM vehicles');
+    res.json({ vehicles });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
+
+// Admin: Get all stations
+app.get('/api/stations', async (req, res) => {
+  try {
+    const [stations] = await pool.query('SELECT * FROM stations');
+    res.json({ stations });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
+
+// Admin: Add a new station
+app.post('/api/stations', async (req, res) => {
+  const { name, address, status, availableSlots, totalSlots, power, price, rating, amenities } = req.body;
+  if (!name || !address || !status || availableSlots === undefined || totalSlots === undefined) {
+    return res.status(400).json({ message: 'Missing required fields.' });
+  }
+  try {
+    await pool.query(
+      'INSERT INTO stations (name, address, status, availableSlots, totalSlots, power, price, rating, amenities) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [name, address, status, availableSlots, totalSlots, power || '', price || '', rating || 0, amenities || '']
+    );
+    res.status(201).json({ message: 'Station added successfully.' });
+  } catch (err) {
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 });

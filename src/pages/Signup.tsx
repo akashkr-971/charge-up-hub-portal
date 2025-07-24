@@ -60,10 +60,12 @@ const Signup = () => {
       if (response.ok) {
         // Signup successful, handle navigation or state here
         console.log('Signup successful:', data);
-        alert('Signup successful! You can now log in.');
-        window.location.href = '/login';  // Redirect to login page
-        // Example: redirect to login page
-        // navigate('/login');
+        // If backend returns user object with role, redirect accordingly
+        if (data.user && data.user.role === 'admin') {
+          window.location.href = '/AdminDashboard';
+        } else {
+          window.location.href = '/';
+        }
       } else {
         alert(data.message || 'Signup failed');
       }

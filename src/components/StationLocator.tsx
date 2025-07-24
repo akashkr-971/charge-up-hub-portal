@@ -1,83 +1,37 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Navigation, Clock, Zap, Star, Search, Filter } from "lucide-react";
+import { MapPin, Navigation, Clock, Zap, Star, Search, Filter, Calendar as CalendarIcon } from "lucide-react";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { format } from "date-fns";
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem
+} from "@/components/ui/select";
 
 interface Station {
   id: string;
   name: string;
   address: string;
-  distance: string;
   availableSlots: number;
   totalSlots: number;
   power: string;
   price: string;
   rating: number;
-  amenities: string[];
-  status: "online" | "offline" | "maintenance";
+  amenities: string;
+  status: string;
 }
 
 const StationLocator = () => {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [filter, setFilter] = useState("all");
-
-  const stations: Station[] = [
-    {
-      id: "1",
-      name: "Downtown Electric Hub",
-      address: "123 Main St, Downtown",
-      distance: "2.5 km",
-      availableSlots: 8,
-      totalSlots: 12,
-      power: "350 kW",
-      price: "$0.35/kWh",
-      rating: 4.8,
-      amenities: ["WiFi", "Cafe", "Restroom", "Shopping"],
-      status: "online"
-    },
-    {
-      id: "2",
-      name: "Mall Charging Center",
-      address: "456 Shopping Ave",
-      distance: "4.1 km",
-      availableSlots: 12,
-      totalSlots: 16,
-      power: "250 kW",
-      price: "$0.32/kWh",
-      rating: 4.6,
-      amenities: ["WiFi", "Restaurant", "Shopping", "Parking"],
-      status: "online"
-    },
-    {
-      id: "3",
-      name: "Highway Express Charge",
-      address: "789 Highway Exit 15",
-      distance: "6.8 km",
-      availableSlots: 6,
-      totalSlots: 8,
-      power: "300 kW",
-      price: "$0.38/kWh",
-      rating: 4.5,
-      amenities: ["24/7", "Convenience Store", "Restroom"],
-      status: "online"
-    },
-    {
-      id: "4",
-      name: "Green Valley Station",
-      address: "321 Eco Park Dr",
-      distance: "8.2 km",
-      availableSlots: 0,
-      totalSlots: 10,
-      power: "200 kW",
-      price: "$0.30/kWh",
-      rating: 4.3,
-      amenities: ["WiFi", "Park", "Restroom"],
-      status: "maintenance"
-    }
-  ];
-
+  // Helper to get status color
   const getStatusColor = (status: string) => {
     switch (status) {
       case "online": return "bg-success";
@@ -86,6 +40,42 @@ const StationLocator = () => {
       default: return "bg-muted";
     }
   };
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filter, setFilter] = useState("all");
+  const [bookingOpen, setBookingOpen] = useState(false);
+  const [selectedStation, setSelectedStation] = useState<Station | null>(null);
+  const [bookingDetails, setBookingDetails] = useState({ date: "", time: "", duration: "" });
+  const [bookingLoading, setBookingLoading] = useState(false);
+
+  // Add these states for booking dialog
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+  const [selectedTime, setSelectedTime] = useState<string | undefined>(undefined);
+  const [selectedDuration, setSelectedDuration] = useState<string | undefined>(undefined);
+
+  // Define available time slots for booking
+  const timeSlots = [
+    "08:00 AM", "09:00 AM", "10:00 AM", "11:00 AM",
+    "12:00 PM", "01:00 PM", "02:00 PM", "03:00 PM",
+    "04:00 PM", "05:00 PM", "06:00 PM", "07:00 PM"
+  ];
+
+  // Define available durations for booking
+  const durations = [
+    "30 minutes", "1 hour", "1.5 hours", "2 hours", "3 hours"
+  ];
+  
+  const [stations, setStations] = useState<Station[]>([]);
+  const [loadingStations, setLoadingStations] = useState(true);
+
+  useEffect(() => {
+    fetch('http://localhost:5000/api/stations')
+      .then(res => res.json())
+      .then(data => {
+        setStations(Array.isArray(data.stations) ? data.stations : []);
+        setLoadingStations(false);
+      })
+      .catch(() => setLoadingStations(false));
+  }, []);
 
   const getAvailabilityColor = (available: number, total: number) => {
     const ratio = available / total;
@@ -105,8 +95,54 @@ const StationLocator = () => {
     return matchesSearch && matchesFilter;
   });
 
+  function cn(...classes: (string | false | null | undefined)[]): string {
+    return classes.filter(Boolean).join(" ");
+  }
+
+  function handleBooking(event: React.MouseEvent<HTMLButtonElement, MouseEvent>): void {
+    event.preventDefault();
+    if (!selectedStation || !selectedDate || !selectedTime || !selectedDuration) {
+      alert("Please select date, time, and duration.");
+      return;
+    }
+    setBookingLoading(true);
+    let user_id = null;
+    try {
+      const user = JSON.parse(localStorage.getItem('user') || 'null');
+      if (user && user.id) user_id = user.id;
+    } catch {}
+    fetch('http://localhost:5000/api/booking', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        user_id,
+        station_id: selectedStation.id,
+        station_name: selectedStation.name,
+        date: format(selectedDate, "yyyy-MM-dd"),
+        time: selectedTime,
+        duration: selectedDuration
+      })
+    })
+      .then(res => {
+        setBookingLoading(false);
+        if (res.ok) {
+          alert('Booking successful!');
+          setBookingOpen(false);
+          setSelectedDate(undefined);
+          setSelectedTime(undefined);
+          setSelectedDuration(undefined);
+        } else {
+          alert('Booking failed. Please try again.');
+        }
+      })
+      .catch(() => {
+        setBookingLoading(false);
+        alert('Booking failed. Please try again.');
+      });
+  }
+
   return (
-    <section className="py-20 bg-background">
+    <section className="py-20 bg-background" id="find-stations">
       <div className="container mx-auto px-4">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
@@ -158,85 +194,201 @@ const StationLocator = () => {
 
           {/* Station Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredStations.map((station) => (
-              <Card key={station.id} className="bg-card border-border hover:shadow-glow-primary transition-all">
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <CardTitle className="text-lg">{station.name}</CardTitle>
-                      <CardDescription className="flex items-center gap-1 mt-1">
-                        <MapPin className="w-3 h-3" />
-                        {station.address}
-                      </CardDescription>
-                    </div>
-                    <Badge className={`text-white ${getStatusColor(station.status)}`}>
-                      {station.status}
+      {filteredStations.map((station) => {
+        // Parse amenities as array if string
+        let amenitiesArr: string[] = [];
+        if (Array.isArray(station.amenities)) amenitiesArr = station.amenities;
+        else if (typeof station.amenities === 'string') amenitiesArr = station.amenities.split(',').map(a => a.trim()).filter(Boolean);
+        // Distance is not in DB, so show blank or calculate if needed
+        return (
+          <Card key={station.id} className="bg-card border-border hover:shadow-glow-primary transition-all">
+            <CardHeader>
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <CardTitle className="text-lg">{station.name}</CardTitle>
+                  <CardDescription className="flex items-center gap-1 mt-1">
+                    <MapPin className="w-3 h-3" />
+                    {station.address}
+                  </CardDescription>
+                </div>
+                <Badge className={`text-white ${getStatusColor(station.status)}`}>
+                  {station.status}
+                </Badge>
+              </div>
+            </CardHeader>
+
+            <CardContent className="space-y-4">
+              {/* Availability */}
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Availability</span>
+                <span className={`font-semibold ${getAvailabilityColor(station.availableSlots, station.totalSlots)}`}>
+                  {station.availableSlots}/{station.totalSlots} slots
+                </span>
+              </div>
+
+              {/* Details */}
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div className="flex items-center gap-1">
+                  <Navigation className="w-3 h-3 text-muted-foreground" />
+                  <span></span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Zap className="w-3 h-3 text-muted-foreground" />
+                  <span>{station.power}</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Clock className="w-3 h-3 text-muted-foreground" />
+                  <span>{station.price}</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Star className="w-3 h-3 text-warning fill-warning" />
+                  <span>{station.rating}</span>
+                </div>
+              </div>
+
+              {/* Amenities */}
+              <div className="space-y-2">
+                <span className="text-xs text-muted-foreground">Amenities</span>
+                <div className="flex flex-wrap gap-1">
+                  {amenitiesArr.slice(0, 3).map((amenity) => (
+                    <Badge key={amenity} variant="secondary" className="text-xs">
+                      {amenity}
                     </Badge>
-                  </div>
-                </CardHeader>
+                  ))}
+                  {station.amenities.length > 3 && (
+                    <Badge variant="outline" className="text-xs">
+                      +{station.amenities.length - 3}
+                    </Badge>
+                  )}
+                </div>
+              </div>
 
-                <CardContent className="space-y-4">
-                  {/* Availability */}
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Availability</span>
-                    <span className={`font-semibold ${getAvailabilityColor(station.availableSlots, station.totalSlots)}`}>
-                      {station.availableSlots}/{station.totalSlots} slots
-                    </span>
-                  </div>
+              {/* Actions */}
+              <div className="flex gap-2 pt-2">
+                <Button
+                  size="sm"
+                  className="flex-1 bg-gradient-electric text-background hover:shadow-glow-primary transition-all"
+                  disabled={station.availableSlots === 0 || station.status !== "online"}
+                  onClick={() => {
+                    setSelectedStation(station);
+                    setBookingOpen(true);
+                  }}
+                >
+                  Book Slot
+                </Button>
+                <Button size="sm" variant="outline">
+                  <Navigation className="w-4 h-4" />
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        );
+      })}
+      {/* Booking Dialog */}
+      <Dialog open={bookingOpen} onOpenChange={setBookingOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Book Slot at {selectedStation?.name}</DialogTitle>
+          </DialogHeader>
+          <form className="space-y-4">
+            <Card className="bg-card border-border">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Clock className="w-5 h-5 text-primary" />
+                  Select Date & Time
+                </CardTitle>
+                <CardDescription>
+                  Choose your preferred charging schedule
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Date Picker */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Date</label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !selectedDate && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {selectedDate ? format(selectedDate, "PPP") : "Pick a date"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={selectedDate}
+                        onSelect={setSelectedDate}
+                        disabled={(date) => date < new Date()}
+                        initialFocus
+                        className="pointer-events-auto"
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
 
-                  {/* Details */}
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div className="flex items-center gap-1">
-                      <Navigation className="w-3 h-3 text-muted-foreground" />
-                      <span>{station.distance}</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Zap className="w-3 h-3 text-muted-foreground" />
-                      <span>{station.power}</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Clock className="w-3 h-3 text-muted-foreground" />
-                      <span>{station.price}</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Star className="w-3 h-3 text-warning fill-warning" />
-                      <span>{station.rating}</span>
-                    </div>
-                  </div>
-
-                  {/* Amenities */}
-                  <div className="space-y-2">
-                    <span className="text-xs text-muted-foreground">Amenities</span>
-                    <div className="flex flex-wrap gap-1">
-                      {station.amenities.slice(0, 3).map((amenity) => (
-                        <Badge key={amenity} variant="secondary" className="text-xs">
-                          {amenity}
-                        </Badge>
+                {/* Time Selection */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Time</label>
+                  <Select onValueChange={setSelectedTime}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select time slot" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {timeSlots.map((time) => (
+                        <SelectItem key={time} value={time}>
+                          {time}
+                        </SelectItem>
                       ))}
-                      {station.amenities.length > 3 && (
-                        <Badge variant="outline" className="text-xs">
-                          +{station.amenities.length - 3}
-                        </Badge>
-                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Duration Selection */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Duration</label>
+                  <Select onValueChange={setSelectedDuration}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select duration" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {durations.map((duration) => (
+                        <SelectItem key={duration} value={duration}>
+                          {duration}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Booking Summary */}
+                {selectedDate && selectedTime && selectedStation && selectedDuration && (
+                  <div className="bg-muted rounded-lg p-4 space-y-2">
+                    <h3 className="font-medium text-foreground">Booking Summary</h3>
+                    <div className="text-sm text-muted-foreground space-y-1">
+                      <p>Station: {stations.find(s => s.id === selectedStation.id)?.name}</p>
+                      <p>Date: {format(selectedDate, "PPP")}</p>
+                      <p>Time: {selectedTime}</p>
+                      <p>Duration: {selectedDuration}</p>
                     </div>
                   </div>
+                )}
 
-                  {/* Actions */}
-                  <div className="flex gap-2 pt-2">
-                    <Button
-                      size="sm"
-                      className="flex-1 bg-gradient-electric text-background hover:shadow-glow-primary transition-all"
-                      disabled={station.availableSlots === 0 || station.status !== "online"}
-                    >
-                      Book Slot
-                    </Button>
-                    <Button size="sm" variant="outline">
-                      <Navigation className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                <Button 
+                  onClick={handleBooking}
+                  className="w-full bg-gradient-electric text-background font-medium hover:shadow-glow-primary transition-all"
+                >
+                  Confirm Booking
+                </Button>
+              </CardContent>
+            </Card>
+          </form>
+        </DialogContent>
+      </Dialog>
           </div>
 
           {filteredStations.length === 0 && (

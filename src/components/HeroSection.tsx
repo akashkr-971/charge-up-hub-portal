@@ -33,13 +33,17 @@ const HeroSection = () => {
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
-            <Button size="lg" className="bg-gradient-electric text-background font-medium hover:shadow-glow-primary transition-all group">
-              Book Charging Slot
-              <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
-            </Button>
-            <Button size="lg" variant="outline" className="border-primary text-primary hover:bg-primary hover:text-background">
-              Find Stations
-            </Button>
+            <a href="#slot-booking">
+              <Button size="lg" className="bg-gradient-electric text-background font-medium hover:shadow-glow-primary transition-all group">
+                Book Charging Slot
+                <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
+              </Button>
+            </a>
+            <a href="#find-stations">
+              <Button size="lg" variant="outline" className="border-primary text-primary hover:bg-primary hover:text-background">
+                Find Charging Stations
+              </Button>
+            </a>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-3xl mx-auto">

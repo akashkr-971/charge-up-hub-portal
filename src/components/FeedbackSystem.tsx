@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -6,14 +6,13 @@ import { Badge } from "@/components/ui/badge";
 import { Star, Send, CheckCircle, ThumbsUp, ThumbsDown, MessageSquare } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
-interface Feedback {
-  id: string;
-  stationName: string;
-  rating: number;
-  experience: "excellent" | "good" | "average" | "poor";
-  comment: string;
-  date: string;
-}
+type Feedback = {
+  id: number;
+  user_id?: number;
+  feedback: string;
+  created_at: string;
+  username?: string;
+};
 
 const FeedbackSystem = () => {
   const { toast } = useToast();
@@ -23,24 +22,18 @@ const FeedbackSystem = () => {
   const [comment, setComment] = useState("");
   const [submitted, setSubmitted] = useState(false);
 
-  const recentFeedback: Feedback[] = [
-    {
-      id: "1",
-      stationName: "Downtown Electric Hub",
-      rating: 5,
-      experience: "excellent",
-      comment: "Fast charging and great location. Very satisfied!",
-      date: "2024-01-15"
-    },
-    {
-      id: "2",
-      stationName: "Mall Charging Center",
-      rating: 4,
-      experience: "good", 
-      comment: "Good experience overall, but could use better signage.",
-      date: "2024-01-10"
-    }
-  ];
+  const [recentFeedback, setRecentFeedback] = useState<Feedback[]>([]);
+  const [loadingFeedback, setLoadingFeedback] = useState(true);
+
+  useEffect(() => {
+    fetch('http://localhost:5000/api/feedbacks')
+      .then(res => res.json())
+      .then(data => {
+        setRecentFeedback(data.feedbacks ? data.feedbacks.slice(0, 5) : []);
+        setLoadingFeedback(false);
+      })
+      .catch(() => setLoadingFeedback(false));
+  }, []);
 
   const handleRatingClick = (star: number) => {
     setRating(star);
@@ -50,7 +43,7 @@ const FeedbackSystem = () => {
     setExperience(exp);
   };
 
-  const handleSubmitFeedback = () => {
+  const handleSubmitFeedback = async () => {
     if (rating === 0) {
       toast({
         title: "Rating Required",
@@ -60,19 +53,49 @@ const FeedbackSystem = () => {
       return;
     }
 
-    setSubmitted(true);
-    toast({
-      title: "Feedback Submitted!",
-      description: "Thank you for your feedback. It helps us improve our service.",
-    });
+    // Get user from localStorage if logged in
+    let user_id = null;
+    try {
+      const user = JSON.parse(localStorage.getItem('user') || 'null');
+      if (user && user.id) user_id = user.id;
+    } catch {}
 
-    // Reset form after a delay
-    setTimeout(() => {
-      setRating(0);
-      setExperience("");
-      setComment("");
-      setSubmitted(false);
-    }, 3000);
+    // Send feedback to backend
+    try {
+      const res = await fetch('http://localhost:5000/api/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id,
+          feedback: `Rating: ${rating}, Experience: ${experience}, Comment: ${comment}`
+        })
+      });
+      if (res.ok) {
+        setSubmitted(true);
+        toast({
+          title: "Feedback Submitted!",
+          description: "Thank you for your feedback. It helps us improve our service.",
+        });
+        setTimeout(() => {
+          setRating(0);
+          setExperience("");
+          setComment("");
+          setSubmitted(false);
+        }, 3000);
+      } else {
+        toast({
+          title: "Submission Failed",
+          description: "Could not submit feedback. Please try again later.",
+          variant: "destructive"
+        });
+      }
+    } catch (err) {
+      toast({
+        title: "Submission Error",
+        description: "An error occurred. Please try again later.",
+        variant: "destructive"
+      });
+    }
   };
 
   const getExperienceColor = (exp: string) => {
@@ -82,16 +105,6 @@ const FeedbackSystem = () => {
       case "average": return "bg-warning";
       case "poor": return "bg-destructive";
       default: return "bg-muted";
-    }
-  };
-
-  const getExperienceIcon = (exp: string) => {
-    switch (exp) {
-      case "excellent": return <ThumbsUp className="w-4 h-4" />;
-      case "good": return <ThumbsUp className="w-4 h-4" />;
-      case "average": return <MessageSquare className="w-4 h-4" />;
-      case "poor": return <ThumbsDown className="w-4 h-4" />;
-      default: return null;
     }
   };
 
@@ -226,40 +239,47 @@ const FeedbackSystem = () => {
               </CardHeader>
               
               <CardContent className="space-y-4">
-                {recentFeedback.map((feedback) => (
-                  <div key={feedback.id} className="border border-border rounded-lg p-4 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <h4 className="font-medium text-foreground">{feedback.stationName}</h4>
-                      <Badge className={`text-white ${getExperienceColor(feedback.experience)}`}>
-                        {getExperienceIcon(feedback.experience)}
-                        <span className="ml-1 capitalize">{feedback.experience}</span>
-                      </Badge>
-                    </div>
-                    
-                    <div className="flex items-center gap-1">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <Star
-                          key={star}
-                          className={`w-4 h-4 ${
-                            star <= feedback.rating
-                              ? "fill-primary text-primary"
-                              : "text-muted-foreground"
-                          }`}
-                        />
-                      ))}
-                      <span className="text-sm text-muted-foreground ml-2">
-                        {feedback.rating}/5
-                      </span>
-                    </div>
-                    
-                    <p className="text-sm text-muted-foreground">{feedback.comment}</p>
-                    
-                    <p className="text-xs text-muted-foreground">{feedback.date}</p>
-                  </div>
-                ))}
-                
-                <div className="text-center">
-                  <Button variant="outline" size="sm">
+                {loadingFeedback ? (
+                  <div>Loading reviews...</div>
+                ) : recentFeedback.length === 0 ? (
+                  <div>No reviews yet.</div>
+                ) : (
+                  recentFeedback.map((feedback) => {
+                    // Parse feedback string: "Rating: 5, Experience: excellent, Comment: ..."
+                    let rating = 0, experience = '', comment = '';
+                    const match = feedback.feedback.match(/Rating: (\d+), Experience: ([^,]+), Comment: (.*)/);
+                    if (match) {
+                      rating = parseInt(match[1], 10);
+                      experience = match[2];
+                      comment = match[3];
+                    } else {
+                      comment = feedback.feedback;
+                    }
+                    const displayName = feedback.username ? feedback.username : 'Anonymous';
+                    return (
+                      <div key={feedback.id} className="border border-border rounded-lg p-4 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="font-medium text-foreground">{displayName}</span>
+                          <span className="text-xs text-muted-foreground">{new Date(feedback.created_at).toLocaleString()}</span>
+                        </div>
+                        <div className="flex items-center gap-2 mb-1">
+                          {/* Star rating */}
+                          {[1,2,3,4,5].map((star) => (
+                            <Star key={star} className={`w-4 h-4 ${star <= rating ? 'fill-primary text-primary' : 'text-muted-foreground'}`} />
+                          ))}
+                          {rating > 0 && <span className="text-sm text-muted-foreground ml-1">{rating}/5</span>}
+                          {/* Experience badge */}
+                          {experience && (
+                            <Badge className={`ml-2 text-white ${getExperienceColor(experience)}`}>{experience.charAt(0).toUpperCase() + experience.slice(1)}</Badge>
+                          )}
+                        </div>
+                        <div className="text-sm text-muted-foreground whitespace-pre-line">{comment}</div>
+                      </div>
+                    );
+                  })
+                )}
+                <div className="text-center mt-2">
+                  <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
                     View All Reviews
                   </Button>
                 </div>
