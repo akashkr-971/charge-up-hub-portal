@@ -1,73 +1,88 @@
-# Welcome to your Lovable project
+# EV Charge
 
-## Project info
+An end-to-end EV charging station management and booking platform.
 
-**URL**: https://lovable.dev/projects/e074088f-3a0c-4778-8fa8-82ffd9bc25c0
+## Features
 
-## How can I edit this code?
+- User registration and login
+- Vehicle registration and management
+- Real-time charging station listing (fetched from MySQL database)
+- Slot booking for charging stations
+- Feedback and review system (with star ratings and comments)
+- Admin dashboard:
+  - View, add, update, and delete charging stations
+  - View all users, vehicles, and reviews
+  - Add new stations with a modern UI
+  - Inline editing and deletion for stations
+  - Logout option for admin
+- Responsive, modern UI with custom color palette
 
-There are several ways of editing your application.
+## Tech Stack
 
-**Use Lovable**
+- **Frontend:** React (TypeScript), Vite, Tailwind CSS
+- **Backend:** Node.js, Express.js
+- **Database:** MySQL
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/e074088f-3a0c-4778-8fa8-82ffd9bc25c0) and start prompting.
+## Getting Started
 
-Changes made via Lovable will be committed automatically to this repo.
+### Prerequisites
 
-**Use your preferred IDE**
+- Node.js (v16+ recommended)
+- MySQL server
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+### Setup
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+1. **Clone the repository:**
 
-Follow these steps:
+   ```bash
+   git clone https://github.com/flipantbugbear/charge-up-hub-portal.git
+   cd charge-up-hub-portal
+   ```
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+2. **Install dependencies:**
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+   ```bash
+   npm install
+   cd backend && npm install
+   ```
 
-# Step 3: Install the necessary dependencies.
-npm i
+3. **Configure the database:**
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
+   - Create a MySQL database (e.g., `evstation`).
+   - Run the SQL in `backend/schema.sql` to create tables.
+   - Update `backend/db.js` with your MySQL credentials.
 
-**Edit a file directly in GitHub**
+4. **Start the backend server:**
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+   ```bash
+   cd backend
+   node server.js
+   ```
 
-**Use GitHub Codespaces**
+5. **Start the frontend:**
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+   ```bash
+   cd ..
+   npm run dev
+   ```
 
-## What technologies are used for this project?
+6. **Access the app:**
+   - User portal: [http://localhost:5173](http://localhost:5173)
+   - Backend API: [http://localhost:5000](http://localhost:5000)
 
-This project is built with:
+## Usage
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+- Register as a user and add your vehicle.
+- Browse and book slots at available charging stations.
+- Leave feedback and reviews after charging.
+- Admins can log in to manage stations, users, vehicles, and reviews.
 
-## How can I deploy this project?
+## Folder Structure
 
-Simply open [Lovable](https://lovable.dev/projects/e074088f-3a0c-4778-8fa8-82ffd9bc25c0) and click on Share -> Publish.
+- `src/` - Frontend React app
+- `backend/` - Express.js backend and database scripts
+- `public/` - Static assets
 
-## Can I connect a custom domain to my Lovable project?
+## License
 
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+MIT
