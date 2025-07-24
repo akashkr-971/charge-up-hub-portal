@@ -246,7 +246,6 @@ app.put('/api/stations/:id', async (req, res) => {
   }
 });
 
-// Admin: Delete a station by ID
 app.delete('/api/stations/:id', async (req, res) => {
   const { id } = req.params;
   try {
