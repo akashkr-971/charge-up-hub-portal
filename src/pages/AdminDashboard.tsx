@@ -4,8 +4,10 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Table, TableHead, TableRow, TableHeader, TableBody, TableCell } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useToast } from "../components/ui/use-toast";
 
 const AdminDashboard = () => {
+  const { toast } = useToast();
   const [newStation, setNewStation] = useState({
     name: '',
     address: '',
@@ -78,8 +80,17 @@ const AdminDashboard = () => {
   return (
     <div className="min-h-screen bg-muted p-4">
       <Card className="w-full max-w-6xl mx-auto bg-background/95 backdrop-blur-sm">
-        <CardHeader className="text-center">
+        <CardHeader className="flex flex-col md:flex-row md:items-center md:justify-between text-center gap-4">
           <CardTitle className="text-2xl font-bold">Admin Dashboard</CardTitle>
+          <button
+            className="bg-destructive hover:bg-destructive/90 text-white font-semibold px-4 py-2 rounded transition-all"
+            onClick={() => {
+              localStorage.removeItem('user');
+              window.location.href = '/login';
+            }}
+          >
+            Logout
+          </button>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="users" className="w-full">
@@ -184,20 +195,85 @@ const AdminDashboard = () => {
                         <TableHead>Price</TableHead>
                         <TableHead>Rating</TableHead>
                         <TableHead>Amenities</TableHead>
+                        <TableHead>Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {stations.map((s: any) => (
+                      {stations.map((s: any, idx: number) => (
                         <TableRow key={s.id}>
                           <TableCell>{s.id}</TableCell>
-                          <TableCell>{s.name}</TableCell>
-                          <TableCell>{s.address}</TableCell>
-                          <TableCell>{s.status}</TableCell>
-                          <TableCell>{s.availableSlots}/{s.totalSlots}</TableCell>
-                          <TableCell>{s.power}</TableCell>
-                          <TableCell>{typeof s.price === 'number' ? `₹${s.price}` : (s.price ? `₹${s.price.replace(/\?/g, '')}` : '')}</TableCell>
-                          <TableCell>{s.rating ? '★'.repeat(Math.round(s.rating)) : ''}</TableCell>
-                          <TableCell>{s.amenities}</TableCell>
+                          <TableCell>
+                            <input className="w-full bg-transparent border-b border-border focus:outline-none" value={s.name} onChange={e => {
+                              const updated = [...stations]; updated[idx].name = e.target.value; setStations(updated);
+                            }} />
+                          </TableCell>
+                          <TableCell>
+                            <input className="w-full bg-transparent border-b border-border focus:outline-none" value={s.address} onChange={e => {
+                              const updated = [...stations]; updated[idx].address = e.target.value; setStations(updated);
+                            }} />
+                          </TableCell>
+                          <TableCell>
+                            <select className="bg-transparent border-b border-border" value={s.status} onChange={e => {
+                              const updated = [...stations]; updated[idx].status = e.target.value; setStations(updated);
+                            }}>
+                              <option value="online">Online</option>
+                              <option value="offline">Offline</option>
+                              <option value="maintenance">Maintenance</option>
+                            </select>
+                          </TableCell>
+                          <TableCell>
+                            <input type="number" className="w-16 bg-transparent border-b border-border focus:outline-none" value={s.availableSlots} onChange={e => {
+                              const updated = [...stations]; updated[idx].availableSlots = Number(e.target.value); setStations(updated);
+                            }} />/
+                            <input type="number" className="w-16 bg-transparent border-b border-border focus:outline-none" value={s.totalSlots} onChange={e => {
+                              const updated = [...stations]; updated[idx].totalSlots = Number(e.target.value); setStations(updated);
+                            }} />
+                          </TableCell>
+                          <TableCell>
+                            <input className="w-20 bg-transparent border-b border-border focus:outline-none" value={s.power || ''} onChange={e => {
+                              const updated = [...stations]; updated[idx].power = e.target.value; setStations(updated);
+                            }} />
+                          </TableCell>
+                          <TableCell>
+                            <input className="w-20 bg-transparent border-b border-border focus:outline-none" value={s.price || ''} onChange={e => {
+                              const updated = [...stations]; updated[idx].price = e.target.value; setStations(updated);
+                            }} />
+                          </TableCell>
+                          <TableCell>
+                            <input className="w-16 bg-transparent border-b border-border focus:outline-none" value={s.rating || ''} onChange={e => {
+                              const updated = [...stations]; updated[idx].rating = e.target.value; setStations(updated);
+                            }} />
+                          </TableCell>
+                          <TableCell>
+                            <input className="w-32 bg-transparent border-b border-border focus:outline-none" value={s.amenities || ''} onChange={e => {
+                              const updated = [...stations]; updated[idx].amenities = e.target.value; setStations(updated);
+                            }} />
+                          </TableCell>
+                          <TableCell className="flex gap-2">
+                            <button className="px-2 py-1 bg-primary text-white rounded text-xs" onClick={async () => {
+                              const res = await fetch(`http://localhost:5000/api/stations/${s.id}`, {
+                                method: 'PUT',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(s)
+                              });
+                              if (res.ok) {
+                                toast({ title: 'Station updated', description: 'Station updated successfully', variant: 'default' });
+                              } else {
+                                toast({ title: 'Update failed', description: 'Could not update station', variant: 'destructive' });
+                              }
+                            }}>Update</button>
+                            <button className="px-2 py-1 bg-destructive text-white rounded text-xs" onClick={async () => {
+                              if (window.confirm('Delete this station?')) {
+                                const res = await fetch(`http://localhost:5000/api/stations/${s.id}`, { method: 'DELETE' });
+                                if (res.ok) {
+                                  setStations(stations.filter(st => st.id !== s.id));
+                                  toast({ title: 'Station deleted', description: 'Station deleted successfully', variant: 'default' });
+                                } else {
+                                  toast({ title: 'Delete failed', description: 'Could not delete station', variant: 'destructive' });
+                                }
+                              }
+                            }}>Delete</button>
+                          </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>

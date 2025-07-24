@@ -1,4 +1,3 @@
-
 // server.js
 import express from 'express';
 import cors from 'cors';
@@ -206,16 +205,56 @@ app.get('/api/stations', async (req, res) => {
 
 // Admin: Add a new station
 app.post('/api/stations', async (req, res) => {
-  const { name, address, status, availableSlots, totalSlots, power, price, rating, amenities } = req.body;
-  if (!name || !address || !status || availableSlots === undefined || totalSlots === undefined) {
+  let { name, address, status, availableSlots, totalSlots, power, price, rating, amenities } = req.body;
+  if (!name || !address || availableSlots === undefined || totalSlots === undefined) {
     return res.status(400).json({ message: 'Missing required fields.' });
   }
+  // Default status to 'online' if not provided or invalid
+  const validStatuses = ['online', 'offline', 'maintenance'];
+  if (!status || !validStatuses.includes(status)) status = 'online';
   try {
     await pool.query(
-      'INSERT INTO stations (name, address, status, availableSlots, totalSlots, power, price, rating, amenities) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [name, address, status, availableSlots, totalSlots, power || '', price || '', rating || 0, amenities || '']
+      'INSERT INTO stations (name, address, availableSlots, totalSlots, power, price, rating, amenities, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [name, address, availableSlots, totalSlots, power || null, price || null, rating || null, amenities || null, status]
     );
     res.status(201).json({ message: 'Station added successfully.' });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
+
+// Admin: Update a station by ID
+app.put('/api/stations/:id', async (req, res) => {
+  const { id } = req.params;
+  const { name, address, status, availableSlots, totalSlots, power, price, rating, amenities } = req.body;
+  if (!name || !address || availableSlots === undefined || totalSlots === undefined) {
+    return res.status(400).json({ message: 'Missing required fields.' });
+  }
+  const validStatuses = ['online', 'offline', 'maintenance'];
+  const safeStatus = status && validStatuses.includes(status) ? status : 'online';
+  try {
+    const [result] = await pool.query(
+      'UPDATE stations SET name=?, address=?, availableSlots=?, totalSlots=?, power=?, price=?, rating=?, amenities=?, status=? WHERE id=?',
+      [name, address, availableSlots, totalSlots, power || null, price || null, rating || null, amenities || null, safeStatus, id]
+    );
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: 'Station not found.' });
+    }
+    res.json({ message: 'Station updated successfully.' });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
+
+// Admin: Delete a station by ID
+app.delete('/api/stations/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const [result] = await pool.query('DELETE FROM stations WHERE id = ?', [id]);
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: 'Station not found.' });
+    }
+    res.json({ message: 'Station deleted successfully.' });
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err.message });
   }
