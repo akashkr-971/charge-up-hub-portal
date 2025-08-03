@@ -259,5 +259,30 @@ app.delete('/api/stations/:id', async (req, res) => {
   }
 });
 
+app.post('/api/payment', async (req, res) => {
+  const { userId, stationId, amount, duration, date, time } = req.body;
+  if (!userId || !stationId || !amount || !duration || !date || !time) {
+    return res.status(400).json({ message: 'All payment fields are required.' });
+  }
+  try {
+    await pool.query(
+      'INSERT INTO payments (user_id, station_id, amount, duration, date, time) VALUES (?, ?, ?, ?, ?, ?)',
+      [userId, stationId, amount, duration, date, time]
+    );
+    res.status(201).json({ message: 'Payment recorded successfully.' });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
+
+app.get('/api/payment-view', async (req, res) => {
+  try {
+    const [payments] = await pool.query('SELECT * FROM payments');
+    res.json({ payments });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
+
 const PORT = 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

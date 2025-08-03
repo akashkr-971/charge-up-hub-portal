@@ -55,17 +55,20 @@ const AdminDashboard = () => {
       fetch("http://localhost:5000/api/vehicles").then(res => res.json()),
       fetch("http://localhost:5000/api/feedbacks").then(res => res.json()),
       fetch("http://localhost:5000/api/stations").then(res => res.json()),
+      fetch("http://localhost:5000/api/payment-view").then(res => res.json()),
       // Payments API can be integrated later
     ])
-      .then(([usersData, vehiclesData, reviewsData, stationsData]) => {
+      .then(([usersData, vehiclesData, reviewsData, stationsData, paymentsData]) => {
         console.log('Fetched users:', usersData);
         console.log('Fetched vehicles:', vehiclesData);
         console.log('Fetched reviews:', reviewsData);
         console.log('Fetched stations:', stationsData);
+        console.log('Fetched payments:', paymentsData);
         setUsers(Array.isArray(usersData.users) ? usersData.users : []);
         setVehicles(Array.isArray(vehiclesData.vehicles) ? vehiclesData.vehicles : []);
         setReviews(Array.isArray(reviewsData.feedbacks) ? reviewsData.feedbacks : []);
         setStations(Array.isArray(stationsData.stations) ? stationsData.stations : []);
+        setPayments(Array.isArray(paymentsData.payments) ? paymentsData.payments : []);
       })
       .catch((err) => {
         console.error('Error fetching admin dashboard data:', err);
@@ -73,6 +76,7 @@ const AdminDashboard = () => {
         setVehicles([]);
         setReviews([]);
         setStations([]);
+        setPayments([]);
       })
       .finally(() => setLoading(false));
   }, []);
@@ -375,7 +379,38 @@ const AdminDashboard = () => {
             <TabsContent value="payments">
               <h2 className="font-semibold text-lg mb-2">All Payments</h2>
               <div className="text-muted-foreground py-4">
-                Payment integration coming soon.
+                {loading ? (
+                  <div>Loading...</div>
+                ) : payments.length === 0 ? (
+                  <div>No payments found.</div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>ID</TableHead>
+                          <TableHead>User</TableHead>
+                          <TableHead>Station</TableHead>
+                          <TableHead>Amount</TableHead>
+                          <TableHead>Date</TableHead>
+                          <TableHead>Duration</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {payments.map((p: any) => (
+                          <TableRow key={p.id}>
+                            <TableCell>{p.id}</TableCell>
+                            <TableCell>{p.user_id}</TableCell>
+                            <TableCell>{p.station_id}</TableCell>
+                            <TableCell>{p.amount}</TableCell>
+                            <TableCell>{new Date(p.created_at).toLocaleDateString()}</TableCell>
+                            <TableCell>{p.duration}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
               </div>
             </TabsContent>
           </Tabs>

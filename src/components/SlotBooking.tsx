@@ -101,10 +101,11 @@ const SlotBooking = () => {
         })
       });
       if (res.ok) {
-        toast({
-          title: "Booking Confirmed!",
-          description: `Your charging slot has been booked for ${format(selectedDate, "PPP")} at ${selectedTime}.`,
-        });
+        // toast({
+        //   title: "Booking Confirmed!",
+        //   description: `Your charging slot has been booked for ${format(selectedDate, "PPP")} at ${selectedTime}.`,
+        // });
+        window.location.href = '/Payment?userId=' + user.id + '&duration=' + selectedDuration + '&stationId=' + station?.id + '&date=' + selectedDate.toISOString().split('T')[0] + '&time=' + selectedTime;
       } else {
         toast({
           title: "Booking Failed",
